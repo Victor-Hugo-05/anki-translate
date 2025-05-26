@@ -51,7 +51,7 @@ app.post("/translate", async (req, res) => {
 
   for (const idioma of idiomas) {
     try {
-      const prompt = `Traduza a palavra '${palavra}' para o ${idioma}. Apenas a palavra, sem explicações. ${idioma === "chines" ? "(Obs: no chinês, você deve escrever a palavra em hanzi e depois, entre parênteses, em pinyin. Ex: '猫 (māo)')" : ""}`;
+      const prompt = `Traduza a palavra/frase '${palavra}' para o ${idioma}. Apenas a tradução, sem explicações. Não deve haver ponto final, nem letra maiúscula. Se for uma frase ou expressão do cotidiano, traduza para algo equivalente e usual. ${idioma === "chines" ? "(Obs: no chinês, você deve escrever a palavra em hanzi e depois, entre parênteses, em pinyin. Ex: '猫 (māo)')" : ""}`;
       const resposta = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
