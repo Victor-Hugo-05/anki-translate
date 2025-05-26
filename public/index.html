@@ -8,10 +8,10 @@
     body {
       font-family: sans-serif;
       padding: 20px;
-      max-width: 400px;
+      max-width: 600px;
       margin: auto;
     }
-    input, button {
+    input, button, select {
       width: 100%;
       padding: 10px;
       margin-top: 10px;
@@ -27,11 +27,32 @@
       flex: 1 1 30%;
       font-size: 1rem;
     }
-    .result {
+    .result, .tabela, .add-form {
       margin-top: 20px;
       background: #f4f4f4;
       padding: 10px;
       border-radius: 5px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #999;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #ddd;
+    }
+    .delete-btn {
+      background: #c00;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      cursor: pointer;
+      border-radius: 3px;
     }
   </style>
 </head>
@@ -52,7 +73,32 @@
 
   <div class="result" id="resultado"></div>
 
+  <hr>
+
+  <h2>Gerenciar Traduções</h2>
+  <select id="idiomaSelect" onchange="carregarTabela()">
+    <option value="">Selecione um idioma</option>
+    <option value="ingles">Inglês</option>
+    <option value="frances">Francês</option>
+    <option value="espanhol">Espanhol</option>
+    <option value="chines">Chinês</option>
+    <option value="italiano">Italiano</option>
+  </select>
+
+  <div class="tabela" id="tabelaContainer"></div>
+
+  <div class="add-form">
+    <h4>Adicionar nova tradução</h4>
+    <input type="text" id="novaPortugues" placeholder="Palavra em português">
+    <input type="text" id="novaTraducao" placeholder="Tradução">
+    <button onclick="adicionarTraducao()">Adicionar</button>
+  </div>
+
   <script>
+    const API_URL = location.hostname === "localhost"
+      ? "http://localhost:3001"
+      : "https://anki-translate.onrender.com";
+
     async function traduzir() {
       const palavra = document.getElementById("palavra").value.trim();
       const checkboxes = document.querySelectorAll("input[type=checkbox]:checked");
@@ -62,9 +108,7 @@
         alert("Digite uma palavra e selecione pelo menos um idioma.");
         return;
       }
-      const API_URL = location.hostname === "localhost" 
-        ? "http://localhost:3001" 
-        : "https://anki-translate.onrender.com";
+
       const res = await fetch(`${API_URL}/translate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -77,6 +121,72 @@
       container.innerHTML = "<h4>Traduções:</h4>" + Object.entries(data).map(
         ([idioma, traducao]) => `<p><strong>${idioma}:</strong> ${traducao}</p>`
       ).join("");
+    }
+
+    async function carregarTabela() {
+      const idioma = document.getElementById("idiomaSelect").value;
+      const tabelaDiv = document.getElementById("tabelaContainer");
+      tabelaDiv.innerHTML = "";
+
+      if (!idioma) return;
+
+      const res = await fetch(`${API_URL}/translations/${idioma}`);
+      const dados = await res.json();
+
+      if (dados.error) {
+        tabelaDiv.textContent = "Erro ao carregar traduções.";
+        return;
+      }
+
+      const table = document.createElement("table");
+      table.innerHTML = `
+        <tr>
+          <th>ID</th>
+          <th>Português</th>
+          <th>Tradução</th>
+          <th>Ação</th>
+        </tr>
+      `;
+
+      dados.forEach(row => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${row.id}</td>
+          <td>${row.portugues}</td>
+          <td>${row.traducao}</td>
+          <td><button class="delete-btn" onclick="deletarLinha('${idioma}', ${row.id})">Excluir</button></td>
+        `;
+        table.appendChild(tr);
+      });
+
+      tabelaDiv.appendChild(table);
+    }
+
+    async function deletarLinha(idioma, id) {
+      if (!confirm("Deseja realmente apagar esta linha?")) return;
+      await fetch(`${API_URL}/translations/${idioma}/${id}`, { method: "DELETE" });
+      carregarTabela();
+    }
+
+    async function adicionarTraducao() {
+      const idioma = document.getElementById("idiomaSelect").value;
+      const portugues = document.getElementById("novaPortugues").value.trim();
+      const traducao = document.getElementById("novaTraducao").value.trim();
+
+      if (!idioma || !portugues || !traducao) {
+        alert("Preencha todos os campos e selecione o idioma.");
+        return;
+      }
+
+      await fetch(`${API_URL}/add`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idioma, portugues, traducao })
+      });
+
+      document.getElementById("novaPortugues").value = "";
+      document.getElementById("novaTraducao").value = "";
+      carregarTabela();
     }
   </script>
 </body>

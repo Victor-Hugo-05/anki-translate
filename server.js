@@ -4,13 +4,13 @@ const sqlite3 = require("sqlite3").verbose();
 const cors = require("cors");
 const path = require("path");
 const OpenAI = require("openai");
-require('dotenv').config();
+require("dotenv").config();
 
 // === CONFIG ===
 const PORT = process.env.PORT || 3001;
 const DB_FILE = "translations.db";
 const SUPPORTED_LANGUAGES = ["ingles", "frances", "espanhol", "chines", "italiano"];
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY; // Sua chave
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 const openai = new OpenAI({
   apiKey: OPENAI_API_KEY
@@ -88,6 +88,49 @@ app.get("/export/:idioma", (req, res) => {
     res.setHeader("Content-Disposition", `attachment; filename=${idioma}.csv`);
     res.send(csv);
   });
+});
+
+// GET /translations/:idioma – listar todas as traduções de uma tabela
+app.get("/translations/:idioma", (req, res) => {
+  const idioma = req.params.idioma;
+  if (!SUPPORTED_LANGUAGES.includes(idioma)) {
+    return res.status(400).json({ error: "Idioma não suportado" });
+  }
+
+  db.all(`SELECT * FROM ${idioma}`, [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+// DELETE /translations/:idioma/:id – apagar uma linha por id
+app.delete("/translations/:idioma/:id", (req, res) => {
+  const { idioma, id } = req.params;
+  if (!SUPPORTED_LANGUAGES.includes(idioma)) {
+    return res.status(400).json({ error: "Idioma não suportado" });
+  }
+
+  db.run(`DELETE FROM ${idioma} WHERE id = ?`, [id], function (err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ success: true });
+  });
+});
+
+// POST /add – adicionar tradução manualmente
+app.post("/add", (req, res) => {
+  const { idioma, portugues, traducao } = req.body;
+  if (!SUPPORTED_LANGUAGES.includes(idioma) || !portugues || !traducao) {
+    return res.status(400).json({ error: "Dados inválidos" });
+  }
+
+  db.run(
+    `INSERT INTO ${idioma} (portugues, traducao) VALUES (?, ?)`,
+    [portugues, traducao],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ id: this.lastID, portugues, traducao });
+    }
+  );
 });
 
 // Inicia o servidor
