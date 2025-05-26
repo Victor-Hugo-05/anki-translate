@@ -62,8 +62,10 @@
         alert("Digite uma palavra e selecione pelo menos um idioma.");
         return;
       }
-
-      const res = await fetch("http://localhost:3001/translate", {
+      const API_URL = location.hostname === "localhost" 
+        ? "http://localhost:3001" 
+        : "https://anki-translate.onrender.com";
+      const res = await fetch(`${API_URL}/translate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ palavra, idiomas })
