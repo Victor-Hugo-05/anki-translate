@@ -2,15 +2,15 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const sqlite3 = require("sqlite3").verbose();
 const cors = require("cors");
-const fs = require("fs");
+const path = require("path");
 const OpenAI = require("openai");
 require('dotenv').config();
 
 // === CONFIG ===
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 const DB_FILE = "translations.db";
 const SUPPORTED_LANGUAGES = ["ingles", "frances", "espanhol", "chines", "italiano"];
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY; // Substitua pela sua chave real
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY; // Sua chave
 
 const openai = new OpenAI({
   apiKey: OPENAI_API_KEY
@@ -21,9 +21,17 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
+// Serve arquivos estáticos da pasta public
+app.use(express.static(path.join(__dirname, "public")));
+
+// Quando acessar /, serve o index.html da pasta public
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+// Banco SQLite
 const db = new sqlite3.Database(DB_FILE);
 
-// Cria tabelas se não existirem
 SUPPORTED_LANGUAGES.forEach((lang) => {
   db.run(
     `CREATE TABLE IF NOT EXISTS ${lang} (id INTEGER PRIMARY KEY, portugues TEXT, traducao TEXT)`
@@ -43,7 +51,7 @@ app.post("/translate", async (req, res) => {
 
   for (const idioma of idiomas) {
     try {
-      const prompt = `Traduza a palavra '${palavra}' para o ${idioma}. Apenas a palavra, sem explicações. ${ idioma === "chines" ? "(Obs: no chinês, você deve escrever a palavra em hanzi e depois, entre parênteses, em pinyin. Ex: '猫 (māo)')" : ""}`;
+      const prompt = `Traduza a palavra '${palavra}' para o ${idioma}. Apenas a palavra, sem explicações. ${idioma === "chines" ? "(Obs: no chinês, você deve escrever a palavra em hanzi e depois, entre parênteses, em pinyin. Ex: '猫 (māo)')" : ""}`;
       const resposta = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
@@ -82,7 +90,7 @@ app.get("/export/:idioma", (req, res) => {
   });
 });
 
-// === START ===
+// Inicia o servidor
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
 });
