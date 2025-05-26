@@ -82,8 +82,8 @@ app.get("/export/:idioma", (req, res) => {
 
   db.all(`SELECT * FROM ${idioma}`, [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
-
-    const csv = ["portugues,traducao", ...rows.map((r) => `${r.portugues},${r.traducao}`)].join("\n");
+    const bomUtf8 = "\uFEFF";
+    const csv = bomUtf8 + ["portugues,traducao", ...rows.map(r => `${r.portugues},${r.traducao}`)].join("\n");
     res.setHeader("Content-Type", "text/csv");
     res.setHeader("Content-Disposition", `attachment; filename=${idioma}.csv`);
     res.send(csv);
