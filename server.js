@@ -7,7 +7,7 @@ const { Pool } = require("pg");
 require("dotenv").config();
 
 // === CONFIG ===
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 const SUPPORTED_LANGUAGES = ["ingles", "frances", "espanhol", "chines", "italiano"];
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
@@ -151,6 +151,6 @@ app.post("/add", async (req, res) => {
 });
 
 // Inicia o servidor
-app.listen(PORT, () => {
-  console.log(`Servidor rodando em http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
 });
